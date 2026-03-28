@@ -1,0 +1,717 @@
+---
+title: "APEC Projects (2006–2026)"
+author: "Luis Felipe ACOSTA ZAVALETA"
+format:
+  dashboard:
+    theme: lumen
+editor: visual
+server: shiny
+---
+
+```{r}
+#| context: setup
+#| include: false
+
+library(shiny)
+library(DT)
+library(rio)
+library(dplyr)
+library(stringr)
+library(plotly)
+library(bslib)
+library(paletteer)
+library(rlang)
+library(tidyr)
+library(fontawesome)
+
+# -------- Color palettes --------
+pal       <- as.character(paletteer_d("fishualize::Epinephelus_lanceolatus"))
+trend_pal <- as.character(paletteer_d("RColorBrewer::Dark2"))
+
+cols <- list(
+  year_bar  = pal[1], forum_bar = pal[1],
+  heat_low  = pal[3], heat_mid  = pal[2], heat_high = pal[1],
+  apec      = pal[1], cofund    = pal[2], other     = pal[3], total = pal[1]
+)
+
+# -------- Global helpers --------
+clean_num <- function(x) {
+  if (is.numeric(x)) return(x)
+  as.numeric(str_replace_all(x, "[,$]", ""))
+}
+
+# Expand a ';'-separated column into individual trimmed rows
+unnest_semicolon <- function(df, col) {
+  col_sym <- sym(col)
+  df |>
+    filter(!is.na(!!col_sym)) |>
+    mutate(!!col_sym := str_split(!!col_sym, ";")) |>
+    unnest(!!col_sym) |>
+    mutate(!!col_sym := str_trim(!!col_sym)) |>
+    filter(!!col_sym != "")
+}
+
+# Expand and add fractional weight per category (economy / topic)
+build_long_split <- function(df, col, weight_col = NULL) {
+  unnest_semicolon(df, col) |>
+    group_by(project_year, project_number) |>
+    mutate(n_cat = n(),
+           part  = if (!is.null(weight_col)) .data[[weight_col]] / n_cat else 1 / n_cat) |>
+    ungroup()
+}
+
+# Compute annual totals and percentage share per group
+agg_with_share <- function(agg_df, value_col) {
+  totals <- agg_df |>
+    group_by(project_year) |>
+    summarise(total_year = sum(.data[[value_col]], na.rm = TRUE), .groups = "drop")
+  agg_df |>
+    left_join(totals, by = "project_year") |>
+    mutate(share = if_else(total_year > 0, 100 * .data[[value_col]] / total_year, 0))
+}
+
+choices_from       <- function(x) sort(unique(na.omit(x)))
+split_choices_from <- function(x) {
+  vals <- str_trim(unlist(str_split(x, ";")))
+  sort(unique(vals[!is.na(vals) & vals != ""]))
+}
+
+# -------- Import and clean data --------
+bd <- import("apec_approved_projects.xlsx")
+names(bd) <- trimws(names(bd))
+
+bd <- bd |>
+  mutate(
+    self_funded = fund_account == "Self-Funded",
+    across(c(apec_funding, co_funding_amount, total_project_value, project_cost_usd), clean_num),
+    total_project_budget    = if_else(self_funded, project_cost_usd, total_project_value),
+    apec_funding            = if_else(self_funded | is.na(apec_funding),      0, apec_funding),
+    co_funding_amount       = if_else(self_funded | is.na(co_funding_amount), 0, co_funding_amount),
+    econ_contribution       = if_else(self_funded, total_project_budget, co_funding_amount),
+    sub_fund                = if_else(self_funded, "None",           sub_fund),
+    project_session         = if_else(self_funded, "Not Applicable", project_session),
+    committee               = na_if(trimws(committee),               ""),
+    other_fora_involved     = na_if(trimws(other_fora_involved),     ""),
+    co_sponsoring_economies = na_if(trimws(co_sponsoring_economies), ""),
+    committee               = if_else(is.na(committee),               "Not Applicable / Other", committee),
+    other_fora_involved     = if_else(is.na(other_fora_involved),     "Not Applicable / Other", other_fora_involved),
+    co_sponsoring_economies = if_else(is.na(co_sponsoring_economies), "None",                   co_sponsoring_economies)
+  ) |>
+  relocate(total_project_budget, econ_contribution, .after = co_funding_amount) |>
+  select(-self_funded, -project_cost_usd, -total_project_value) |>
+  select(
+    project_title, project_number, proposing_economy, project_year,
+    sponsoring_forum, committee, topics, project_status, project_session,
+    co_sponsoring_economies, fund_account, sub_fund,
+    total_project_budget, apec_funding, co_funding_amount, econ_contribution,
+    other_fora_involved, organization_1, organization_2, everything()
+  )
+
+# -------- Filter choices --------
+year_choices          <- choices_from(bd$project_year)
+forum_choices         <- choices_from(bd$sponsoring_forum)
+status_choices        <- choices_from(bd$project_status)
+fund_choices          <- choices_from(bd$fund_account)
+subfund_choices       <- choices_from(bd$sub_fund)
+session_choices       <- choices_from(bd$project_session)
+committee_choices     <- choices_from(bd$committee)
+project_title_choices <- choices_from(bd$project_title)
+economy_choices       <- split_choices_from(bd$proposing_economy)
+co_spons_choices      <- setdiff(split_choices_from(bd$co_sponsoring_economies), "None")
+topics_choices        <- split_choices_from(bd$topics)
+```
+
+##  {.sidebar width="370px"}
+
+```{r}
+#| panel: sidebar
+
+tagList(
+  accordion(
+    id = "filters_acc", open = "Main filters", width = "200%",
+
+    accordion_panel(
+      "Main filters",
+      selectInput("year_filter",      "Year:",              choices = year_choices,      multiple = TRUE),
+      selectInput("economy_filter",   "Proposing economy:", choices = economy_choices,   multiple = TRUE),
+      selectInput("forum_filter",     "Forum:",             choices = forum_choices,     multiple = TRUE),
+      selectInput("committee_filter", "Committee:",         choices = committee_choices, multiple = TRUE),
+      selectInput("topics_filter",    "Topic:",             choices = topics_choices,    multiple = TRUE),
+      selectInput("status_filter",    "Status:",            choices = status_choices,    multiple = TRUE)
+    ),
+
+    accordion_panel(
+      "Advanced filters",
+      selectInput("session_filter",  "Session:",    choices = session_choices,  multiple = TRUE),
+      selectInput("co_spons_filter", "Co-sponsor:", choices = co_spons_choices, multiple = TRUE),
+      selectInput("fund_filter",     "Fund:",       choices = fund_choices,     multiple = TRUE),
+      selectInput("subfund_filter",  "Sub-fund:",   choices = subfund_choices,  multiple = TRUE),
+      selectizeInput(
+        "title_filter", "Project title:", choices = project_title_choices,
+        multiple = TRUE, options = list(placeholder = "Type text...", maxOptions = 100)
+      )
+    )
+  ),
+
+  actionButton(
+    "reset_filters", "Reset filters",
+    class = "btn btn-sm btn-secondary",
+    style = "font-size:13px;padding:8px 20px;height:50px;line-height:20px;margin-top:10px;"
+  ),
+  downloadButton(
+    "download_xlsx", "Download XLSX",
+    class = "btn btn-sm btn-primary",
+    style = "font-size:13px;padding:8px 20px;height:50px;line-height:20px;margin-top:10px;"
+  ),
+
+  tags$hr(),
+  tags$p(
+    "This dashboard was developed using publicly available data from the ",
+    tags$a(href = "https://pdb.apec.org/", "APEC Project Database"), ".",
+    style = "font-size:12px; color:#555; margin-top:6px;"
+  )
+)
+```
+
+```{r}
+#| context: server
+
+# -------- Server helpers --------
+clean_sel <- function(x) if (is.null(x) || !length(x)) NULL else x
+
+filter_ids <- c(
+  "title_filter", "year_filter", "forum_filter", "topics_filter", "economy_filter",
+  "co_spons_filter", "status_filter", "committee_filter", "fund_filter", "subfund_filter", "session_filter"
+)
+
+exact_filters <- c(
+  project_title    = "title_filter",  project_year     = "year_filter",
+  sponsoring_forum = "forum_filter",  project_status   = "status_filter",
+  fund_account     = "fund_filter",   sub_fund         = "subfund_filter",
+  project_session  = "session_filter", committee       = "committee_filter"
+)
+
+multi_filters <- c(
+  proposing_economy       = "economy_filter",
+  co_sponsoring_economies = "co_spons_filter",
+  topics                  = "topics_filter"
+)
+
+# Reset all filter inputs to empty selection
+observeEvent(input$reset_filters, {
+  lapply(filter_ids, function(id) {
+    if (id == "title_filter") updateSelectizeInput(session, id, selected = character(0))
+    else                      updateSelectInput(session, id,    selected = character(0))
+  })
+})
+
+# -------- Filtered dataset --------
+bd_filtrada <- reactive({
+  df <- bd
+  for (col in names(exact_filters)) {
+    sel <- clean_sel(input[[exact_filters[[col]]]])
+    if (!is.null(sel)) df <- filter(df, .data[[col]] %in% sel)
+  }
+  for (col in names(multi_filters)) {
+    sel <- clean_sel(input[[multi_filters[[col]]]])
+    if (!is.null(sel)) {
+      pat <- paste(sel, collapse = "|")
+      df  <- filter(df, !is.na(.data[[col]]), str_detect(.data[[col]], pat))
+    }
+  }
+  df
+})
+
+# -------- Export columns --------
+# Columns used for XLSX download (full export)
+cols_keep <- c(
+  "project_title", "project_number", "proposing_economy", "project_year",
+  "sponsoring_forum", "committee", "topics", "project_status", "project_session",
+  "co_sponsoring_economies", "fund_account", "sub_fund",
+  "total_project_budget", "apec_funding", "co_funding_amount", "econ_contribution",
+  "other_fora_involved", "link"
+)
+
+bd_export <- reactive({
+  bd_filtrada() |> select(any_of(cols_keep))
+})
+
+output$download_xlsx <- downloadHandler(
+  filename = function() paste0("apec_projects_filtered_", Sys.Date(), ".xlsx"),
+  content  = function(file) rio::export(bd_export(), file)
+)
+
+# -------- KPIs --------
+kpi_data <- reactive({
+  df         <- bd_filtrada()
+  total_proj <- n_distinct(df$project_number)
+  total_bud  <- sum(df$total_project_budget, na.rm = TRUE)
+  self_n     <- sum(df$fund_account == "Self-Funded", na.rm = TRUE)
+  list(
+    total_proj      = total_proj,
+    total_budget_m  = total_bud / 1e6,
+    avg_budget_m    = if (total_proj > 0) total_bud / total_proj / 1e6 else NA_real_,
+    share_self_fund = if (total_proj > 0) 100 * self_n / total_proj    else NA_real_
+  )
+})
+
+output$kpi_row <- renderUI({
+  k <- kpi_data()
+
+  small_icon <- function(icon_name)
+    tags$span(fa_i(icon_name), style = "font-size:0.7rem; margin-right:1px;")
+
+  kpi_css <- tags$style("
+    .small-kpi.card            { margin-bottom:0rem; max-height:80px; }
+    .small-kpi .card-body      { padding:0.15rem 0.3rem; }
+    .small-kpi .value-box-title {
+      font-size:0.8rem !important; margin-bottom:0.05rem;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .small-kpi .value-box-value   { font-size:1.1rem !important; line-height:1.1; font-weight:bold; }
+    .small-kpi .value-box-showcase { font-size:1.0rem !important; margin-right:0.25rem; }
+    .small-kpi .value-box-showcase span { font-size:0.8rem !important; }
+  ")
+
+  small_box <- function(...) value_box(..., class = "small-kpi")
+
+  div(
+    id = "kpi-container", style = "max-height:80px; overflow:hidden;",
+    tagList(
+      kpi_css,
+      layout_columns(
+        col_widths = c(3, 3, 3, 3),
+        small_box("Projects",
+                  formatC(k$total_proj, big.mark = ","),
+                  showcase = small_icon("layer-group"),
+                  theme = value_box_theme(bg = pal[1], fg = "white")),
+        small_box("Total project value in US$ Millions",
+                  sprintf("%.1f", k$total_budget_m),
+                  showcase = small_icon("dollar-sign"),
+                  theme = value_box_theme(bg = pal[2], fg = "white")),
+        small_box("Average project value in US$ Millions",
+                  sprintf("%.2f", k$avg_budget_m),
+                  showcase = small_icon("chart-column"),
+                  theme = value_box_theme(bg = pal[3], fg = "white")),
+        small_box("Self-funding share",
+                  sprintf("%.1f", k$share_self_fund),
+                  showcase = small_icon("percent"),
+                  theme = value_box_theme(bg = pal[4], fg = "white"))
+      )
+    )
+  )
+})
+
+# -------- Trend helpers --------
+get_trend_colors <- function(cats, palette = pal) {
+  cats <- sort(unique(cats))
+  setNames(rep_len(palette, length(cats)), cats)
+}
+
+# Top categories by budget within the filtered dataset
+top_categories_by_budget <- function(df, dim, top_n) {
+  if (!nrow(df)) return(character(0))
+
+  other_label <- "Not Applicable / Other"
+
+  cats <- if (dim == "economy") {
+    build_long_split(filter(df, econ_contribution > 0), "proposing_economy", "econ_contribution") |>
+      group_by(proposing_economy) |>
+      summarise(total_budget = sum(part, na.rm = TRUE), .groups = "drop") |>
+      arrange(desc(total_budget)) |> pull(proposing_economy)
+
+  } else if (dim == "topic") {
+    build_long_split(filter(df, !is.na(total_project_budget)), "topics", "total_project_budget") |>
+      group_by(topics) |>
+      summarise(total_budget = sum(part, na.rm = TRUE), .groups = "drop") |>
+      arrange(desc(total_budget)) |> pull(topics)
+
+  } else {
+    col_sym <- sym(if (dim == "forum") "sponsoring_forum" else "committee")
+    df |>
+      filter(!is.na(!!col_sym)) |>
+      group_by(!!col_sym) |>
+      summarise(total_budget = sum(total_project_budget, na.rm = TRUE), .groups = "drop") |>
+      arrange(desc(total_budget)) |> pull(!!col_sym)
+  }
+
+  if (!length(cats)) return(character(0))
+
+  # Always push "Not Applicable / Other" to the end for committees
+  if (dim == "committee" && other_label %in% cats)
+    cats <- c(setdiff(cats, other_label), other_label)
+
+  head(cats, top_n)
+}
+
+# Project count trend series
+build_trend_projects <- function(df, dim, top_cats) {
+  if (!nrow(df) || !length(top_cats)) return(NULL)
+
+  if (dim %in% c("economy", "topic")) {
+    col     <- if (dim == "economy") "proposing_economy" else "topics"
+    col_sym <- sym(col)
+
+    df_long <- unnest_semicolon(df, col) |>
+      group_by(project_year, project_number) |>
+      mutate(n_cat = n(), weight = 1 / n_cat) |>
+      ungroup()
+
+    agg <- df_long |>
+      filter(!!col_sym %in% top_cats) |>
+      group_by(project_year, !!col_sym) |>
+      summarise(frac_projects = sum(weight, na.rm = TRUE),
+                n_projects    = n_distinct(project_number), .groups = "drop")
+
+    totals_frac <- agg |>
+      group_by(project_year) |>
+      summarise(total_frac = sum(frac_projects, na.rm = TRUE), .groups = "drop")
+
+    agg |>
+      left_join(totals_frac, by = "project_year") |>
+      mutate(share = if_else(total_frac > 0, 100 * frac_projects / total_frac, 0),
+             value = n_projects) |>
+      rename(year = project_year, category = !!col_sym) |>
+      arrange(year, category)
+
+  } else {
+    col_sym <- sym(if (dim == "forum") "sponsoring_forum" else "committee")
+    agg <- df |>
+      filter(!is.na(!!col_sym)) |>
+      group_by(project_year, !!col_sym) |>
+      summarise(n_projects = n_distinct(project_number), .groups = "drop")
+    if (!nrow(agg)) return(NULL)
+    agg_with_share(agg, "n_projects") |>
+      mutate(value = n_projects) |>
+      filter(!!col_sym %in% top_cats) |>
+      rename(year = project_year, category = !!col_sym) |>
+      arrange(year, category)
+  }
+}
+
+# Budget trend series (MM USD)
+build_trend_budget <- function(df, dim, top_cats) {
+  if (!nrow(df) || !length(top_cats)) return(NULL)
+
+  if (dim %in% c("economy", "topic")) {
+    col      <- if (dim == "economy") "proposing_economy" else "topics"
+    wgt_col  <- if (dim == "economy") "econ_contribution" else "total_project_budget"
+    df_filt  <- if (dim == "economy") filter(df, econ_contribution > 0)
+                else                  filter(df, !is.na(total_project_budget))
+    col_sym  <- sym(col)
+
+    df_long <- build_long_split(df_filt, col, wgt_col)
+    if (!nrow(df_long)) return(NULL)
+
+    agg <- df_long |>
+      filter(!!col_sym %in% top_cats) |>
+      group_by(project_year, !!col_sym) |>
+      summarise(amount = sum(part, na.rm = TRUE), .groups = "drop")
+
+    agg_with_share(agg, "amount") |>
+      mutate(value = amount / 1e6) |>
+      rename(year = project_year, category = !!col_sym) |>
+      arrange(year, category)
+
+  } else {
+    col_sym <- sym(if (dim == "forum") "sponsoring_forum" else "committee")
+    agg <- df |>
+      filter(!is.na(!!col_sym)) |>
+      group_by(project_year, !!col_sym) |>
+      summarise(amount = sum(total_project_budget, na.rm = TRUE), .groups = "drop")
+    if (!nrow(agg)) return(NULL)
+    agg_with_share(agg, "amount") |>
+      mutate(value = amount / 1e6) |>
+      filter(!!col_sym %in% top_cats) |>
+      rename(year = project_year, category = !!col_sym) |>
+      arrange(year, category)
+  }
+}
+
+# -------- Plots --------
+
+# 1) Project count: by year / by forum / heatmap
+output$proj_plot <- renderPlotly({
+  df   <- bd_filtrada()
+  if (!nrow(df)) return(NULL)
+  view <- req(input$proj_view)
+
+  if (view == "year") {
+    df_y <- count(df, project_year, name = "n") |> arrange(project_year)
+    total_p <- sum(df_y$n)
+    df_y <- mutate(df_y, share = if (total_p > 0) 100 * n / total_p else NA_real_)
+    return(
+      plot_ly(df_y, x = ~project_year, y = ~n, type = "bar",
+              marker = list(color = cols$year_bar), text = ~n, textposition = "outside",
+              customdata = ~share,
+              hovertemplate = "Year: %{x}<br>Projects: %{y}<br>Share: %{customdata:.1f}%<extra></extra>") |>
+        layout(title = "Projects by year",
+               xaxis = list(title = "Year"), yaxis = list(title = "Number of projects"),
+               uniformtext = list(minsize = 10, mode = "hide"))
+    )
+  }
+
+  if (view == "forum") {
+    df_f <- df |>
+      filter(!is.na(sponsoring_forum)) |>
+      group_by(sponsoring_forum) |>
+      summarise(n = n_distinct(project_number), .groups = "drop")
+    if (!nrow(df_f)) return(NULL)
+    total_p <- sum(df_f$n)
+    df_f <- df_f |>
+      mutate(share = if (total_p > 0) round(100 * n / total_p, 1) else 0) |>
+      arrange(desc(n)) |>
+      mutate(sponsoring_forum = factor(sponsoring_forum, levels = rev(sponsoring_forum)))
+    return(
+      plot_ly(df_f, x = ~n, y = ~sponsoring_forum, type = "bar", orientation = "h",
+              marker = list(color = cols$forum_bar), text = ~n, textposition = "outside",
+              customdata = ~share,
+              hovertemplate = "Forum: %{y}<br>Projects: %{x}<br>Share: %{customdata:.1f}%<extra></extra>") |>
+        layout(title = "Projects by forum",
+               xaxis = list(title = "Number of projects"), yaxis = list(title = ""))
+    )
+  }
+
+  if (view == "year_forum") {
+    df_h <- df |>
+      count(project_year, sponsoring_forum, name = "n") |>
+      complete(project_year     = sort(unique(df$project_year)),
+               sponsoring_forum = sort(unique(df$sponsoring_forum)),
+               fill = list(n = 0)) |>
+      mutate(project_year = factor(project_year, levels = sort(unique(df$project_year))))
+    if (!nrow(df_h)) return(NULL)
+    return(
+      plot_ly(df_h, x = ~project_year, y = ~sponsoring_forum, z = ~n, type = "heatmap",
+              colorscale   = list(list(0, cols$heat_low), list(0.5, cols$heat_mid), list(1, cols$heat_high)),
+              reversescale = FALSE,
+              hovertemplate = "Year: %{x}<br>Forum: %{y}<br>Projects: %{z}<extra></extra>") |>
+        layout(title = "Projects by year and forum",
+               xaxis = list(title = "Year"), yaxis = list(title = "Forum"))
+    )
+  }
+  NULL
+})
+
+# 2) Budget: total by year + stacked area by funding source
+output$budget_comp_plot <- renderPlotly({
+  df   <- bd_filtrada()
+  if (!nrow(df)) return(NULL)
+  view <- req(input$budget_view)
+
+  if (identical(view, "Total budget (MM USD)")) {
+    df_t <- df |>
+      group_by(project_year) |>
+      summarise(total = sum(total_project_budget, na.rm = TRUE), .groups = "drop") |>
+      mutate(total_m = total / 1e6)
+    grand_total <- sum(df_t$total_m, na.rm = TRUE)
+    df_t <- mutate(df_t, share = if (grand_total > 0) 100 * total_m / grand_total else NA_real_)
+    return(
+      plot_ly(df_t, x = ~project_year, y = ~total_m, type = "bar",
+              marker = list(color = cols$total), text = ~paste0(round(total_m, 1), " M"),
+              textposition = "outside", customdata = ~share,
+              hovertemplate = "Year: %{x}<br>Total budget: %{y:.1f} M<br>Share: %{customdata:.1f}%<extra></extra>") |>
+        layout(title = "Project value by year",
+               xaxis = list(title = "Year"),
+               yaxis = list(title = "US$ (Millions)", tickformat = ".1~f"))
+    )
+  }
+
+  if (identical(view, "Budget composition by type of financing")) {
+    df_fin <- df |>
+      mutate(
+        is_self     = fund_account == "Self-Funded",
+        apec_part   = if_else(is_self, 0, pmax(total_project_budget - co_funding_amount, 0, na.rm = TRUE)),
+        cofund_part = if_else(is_self, 0, co_funding_amount),
+        self_part   = if_else(is_self, total_project_budget, 0)
+      ) |>
+      group_by(project_year) |>
+      summarise(apec   = sum(apec_part,   na.rm = TRUE),
+                cofund = sum(cofund_part, na.rm = TRUE),
+                self   = sum(self_part,   na.rm = TRUE), .groups = "drop") |>
+      mutate(across(c(apec, cofund, self), ~ . / 1e6, .names = "{.col}_m"),
+             total_m = apec_m + cofund_m + self_m)
+
+    return(
+      plot_ly(df_fin, x = ~project_year) |>
+        add_trace(y = ~apec_m,   type = "scatter", mode = "none", stackgroup = "one",
+                  name = "APEC-funding",      fillcolor = cols$apec,
+                  customdata = ~total_m,
+                  hovertemplate = "Year %{x}<br>APEC: %{y:.1f} M<br>Total: %{customdata:.1f} M<extra></extra>") |>
+        add_trace(y = ~cofund_m, type = "scatter", mode = "none", stackgroup = "one",
+                  name = "Economy co-funding", fillcolor = cols$cofund,
+                  customdata = ~total_m,
+                  hovertemplate = "Year %{x}<br>Co-funding: %{y:.1f} M<br>Total: %{customdata:.1f} M<extra></extra>") |>
+        add_trace(y = ~self_m,   type = "scatter", mode = "none", stackgroup = "one",
+                  name = "Self-funding",       fillcolor = cols$other,
+                  customdata = ~total_m,
+                  hovertemplate = "Year %{x}<br>Self-funded: %{y:.1f} M<br>Total: %{customdata:.1f} M<extra></extra>") |>
+        add_trace(y = ~total_m,  type = "scatter", mode = "lines", name = "Total",
+                  line = list(color = "rgba(0,0,0,0.6)", width = 2),
+                  hovertemplate = "Year %{x}<br>Total: %{y:.1f} M<extra></extra>") |>
+        layout(title  = "Project value by source",
+               xaxis  = list(title = "Year"),
+               yaxis  = list(title = "US$ (Millions)", tickformat = ".1~f"),
+               legend = list(orientation = "h", y = -0.2))
+    )
+  }
+  NULL
+})
+
+# 3) Trends over time
+output$trend_plot <- renderPlotly({
+  df        <- bd_filtrada()
+  if (!nrow(df)) return(NULL)
+  dim_input <- req(input$trend_dim)
+  metric    <- req(input$trend_metric)
+
+  dim_map    <- c(Economies = "economy", Forums = "forum", Committees = "committee", Topics = "topic")
+  label_map  <- c(economy = "Economy",   forum = "Forum",  committee = "Committee",  topic = "Topic")
+  plural_map <- c(economy = "Economies", forum = "Forums", committee = "Committees", topic = "Topics")
+  dim    <- dim_map[[dim_input]]
+  top_n  <- 5L
+
+  # If the dimension filter is active, use its selection as categories
+  selected_econ  <- clean_sel(input$economy_filter)
+  selected_topic <- clean_sel(input$topics_filter)
+  top_cats <- if (dim == "economy" && !is.null(selected_econ)) selected_econ
+              else if (dim == "topic" && !is.null(selected_topic)) selected_topic
+              else top_categories_by_budget(df, dim, top_n)
+
+  if (!length(top_cats)) return(NULL)
+
+  df_trend <- if (metric == "Projects") build_trend_projects(df, dim, top_cats)
+              else                      build_trend_budget(df, dim, top_cats)
+  if (is.null(df_trend) || !nrow(df_trend)) return(NULL)
+
+  cats <- sort(unique(df_trend$category))
+  # Push "Not Applicable / Other" to the end for committees
+  if (dim == "committee" && "Not Applicable / Other" %in% cats)
+    cats <- c(setdiff(cats, "Not Applicable / Other"), "Not Applicable / Other")
+
+  df_trend$category <- factor(df_trend$category, levels = cats)
+  col_vec           <- get_trend_colors(cats, trend_pal)
+
+  yaxis_title <- if (metric == "Projects") "Number of projects" else "US$ (Millions)"
+  tick_fmt    <- if (metric == "Projects") "d" else ".1~f"
+  htmpl <- if (metric == "Projects")
+    paste0(label_map[[dim]], ": %{text}<br>Year: %{x}<br>Projects: %{y}<extra></extra>")
+  else
+    paste0(label_map[[dim]], ": %{text}<br>Year: %{x}<br>Budget: %{y:.2f} M<extra></extra>")
+
+  p <- plot_ly()
+  for (cat in cats) {
+    df_cat <- df_trend[df_trend$category == cat, ]
+    p <- add_trace(p,
+      data = df_cat, x = ~year, y = ~value, type = "scatter",
+      mode   = if (nrow(df_cat) == 1) "markers" else "lines",
+      name   = as.character(cat),
+      line   = if (nrow(df_cat) == 1) NULL else list(color = col_vec[as.character(cat)], width = 2),
+      marker = list(color = col_vec[as.character(cat)], size = 10),
+      text   = ~category, hovertemplate = htmpl
+    )
+  }
+
+  p |> layout(
+    title     = paste0(plural_map[[dim]], " – ",
+                       if (metric == "Projects") "projects" else "project budget", " over time"),
+    xaxis     = list(title = "Year"),
+    yaxis     = list(title = yaxis_title, tickformat = tick_fmt),
+    legend    = list(orientation = "h", y = -0.2),
+    hovermode = "x unified"
+  )
+})
+
+# 4) Data table
+output$tabla_proyectos_budget <- renderDT({
+  df <- bd_filtrada()
+
+  # Build display-only cost columns based on funding type
+  df_table <- df |>
+    mutate(
+      # Total cost: unified budget for all project types
+      total_cost_usd    = total_project_budget,
+      # APEC contribution: 0 for self-funded, apec_funding otherwise
+      apec_funding_usd  = apec_funding,
+      # Economy co-funding: 0 for self-funded, co_funding_amount otherwise
+      co_funding_usd    = co_funding_amount,
+      # Self-funded amount: only populated for Self-Funded projects
+      self_funded_usd   = if_else(fund_account == "Self-Funded", total_project_budget, 0),
+      # Clickable link; empty string if missing
+      link = if_else(
+        !is.na(link) & link != "",
+        sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">View</a>', link),
+        ""
+      )
+    ) |>
+    # Select and order display columns only
+    select(
+      project_title, project_number, proposing_economy, project_year,
+      sponsoring_forum, fund_account, project_status,
+      total_cost_usd, apec_funding_usd, co_funding_usd, self_funded_usd,
+      link
+    )
+
+  DT::datatable(
+    df_table,
+    options  = list(pageLength = 25, scrollX = TRUE),
+    rownames = FALSE,
+    escape   = FALSE   # allow HTML in link column
+  )
+})
+```
+
+## 
+
+### KPI's {height="120px"}
+
+```{r}
+uiOutput("kpi_row")
+```
+
+### Row
+
+#### Plots {.tabset}
+
+##### Number of projects
+
+```{r}
+selectInput(
+  "proj_view", "View:",
+  choices  = c("By year" = "year", "By forum" = "forum", "By year and forum" = "year_forum"),
+  selected = "year"
+)
+plotlyOutput("proj_plot", height = "500px")
+```
+
+##### Project value
+
+```{r}
+selectInput(
+  "budget_view", "View:",
+  choices  = c("By year" = "Total budget (MM USD)", "By source" = "Budget composition by type of financing"),
+  selected = "Total budget (MM USD)"
+)
+plotlyOutput("budget_comp_plot", height = "500px")
+```
+
+##### Trends over time
+
+```{r}
+selectInput(
+  "trend_dim", "Dimension:",
+  choices  = c("Economies", "Forums", "Committees", "Topics"),
+  selected = "Economies"
+)
+radioButtons(
+  "trend_metric", "Metric:",
+  choices  = c("Projects", "Budget"),
+  selected = "Projects", inline = TRUE
+)
+plotlyOutput("trend_plot", height = "500px")
+```
+
+##### Data
+
+```{r}
+DTOutput("tabla_proyectos_budget")
+```
