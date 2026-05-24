@@ -40,7 +40,7 @@ jobs:
 
       - name: install R packages
         run: |
-          Rscript -e 'install.packages(c("readxl", "readr", "dplyr", "ggplot2", "plotly", "DT", "rsconnect"))'
+          Rscript -e 'install.packages(c("shiny", "rmarkdown", "readxl", "readr", "dplyr", "ggplot2", "plotly", "DT", "rsconnect"))'
 
       - name: render dashboard
         run: |
