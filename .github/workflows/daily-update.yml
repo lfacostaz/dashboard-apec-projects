@@ -1,0 +1,77 @@
+name: daily APEC dashboard update
+
+on:
+  schedule:
+    # 6:15 AM Peru time = 11:15 UTC
+    - cron: "15 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: install python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: run APEC scraper
+        run: |
+          python script/web-scraping-apec-pdb.py
+
+      - name: set up R
+        uses: r-lib/actions/setup-r@v2
+
+      - name: install Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: install R packages
+        run: |
+          Rscript -e 'install.packages(c("readxl", "readr", "dplyr", "ggplot2", "plotly", "DT", "rsconnect"))'
+
+      - name: render dashboard
+        run: |
+          quarto render dashboard-apec-projects.qmd
+
+      - name: commit updated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apec_approved_projects.csv
+          git add apec_approved_projects.xlsx
+          git add dashboard-apec-projects.html
+          git add dashboard-apec-projects_files/ || true
+          git diff --cached --quiet || git commit -m "daily APEC dashboard update"
+          git push
+
+      - name: deploy with rsconnect
+        env:
+          SHINYAPPS_ACCOUNT: ${{ secrets.SHINYAPPS_ACCOUNT }}
+          SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
+          SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
+        run: |
+          Rscript -e 'rsconnect::setAccountInfo(
+            name = Sys.getenv("SHINYAPPS_ACCOUNT"),
+            token = Sys.getenv("SHINYAPPS_TOKEN"),
+            secret = Sys.getenv("SHINYAPPS_SECRET")
+          )'
+          Rscript -e 'rsconnect::deployApp(
+            appDir = ".",
+            appName = "dashboard-apec-projects",
+            account = Sys.getenv("SHINYAPPS_ACCOUNT"),
+            server = "shinyapps.io",
+            forceUpdate = TRUE
+          )'

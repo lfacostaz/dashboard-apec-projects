@@ -5,7 +5,7 @@ account: lfacostaz
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 17005900
-bundleId: 11772640
+bundleId: 12034570
 url: https://lfacostaz.shinyapps.io/dashboard-apec-projects/
 version: 1
 quarto_version: 1.8.25

@@ -1,5 +1,5 @@
 ---
-title: "APEC Projects (2006–2026)"
+title: "APEC Projects"
 author: "Luis Felipe ACOSTA ZAVALETA"
 format:
   dashboard:
