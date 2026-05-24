@@ -40,25 +40,7 @@ jobs:
 
       - name: install R packages
         run: |
-          Rscript -e 'install.packages(c(
-            "shiny",
-            "rmarkdown",
-            "rio",
-            "readxl",
-            "readr",
-            "DT",
-            "dplyr",
-            "stringr",
-            "plotly",
-            "bslib",
-            "paletteer",
-            "rlang",
-            "tidyr",
-            "fontawesome",
-            "fishualize",
-            "RColorBrewer",
-            "rsconnect"
-          ))'
+          Rscript -e 'install.packages(c("shiny", "rmarkdown", "rio", "readxl", "readr", "DT", "dplyr", "stringr", "plotly", "bslib", "paletteer", "rlang", "tidyr", "fontawesome", "fishualize", "RColorBrewer", "rsconnect"), repos = "https://cloud.r-project.org")'
 
       - name: render dashboard
         run: |
