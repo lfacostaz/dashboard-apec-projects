@@ -1,4 +1,4 @@
-# APEC approved projects dashboard
+# Dashboard: APEC Projects
 
 This repository contains an automated data pipeline and an interactive dashboard for exploring publicly available information from the APEC Project Database.
 
