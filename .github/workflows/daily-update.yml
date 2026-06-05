@@ -121,4 +121,3 @@ jobs:
             server = "shinyapps.io",
             forceUpdate = TRUE
           )'
-```
