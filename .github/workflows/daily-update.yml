@@ -82,17 +82,18 @@ jobs:
 
       - name: render dashboard
         run: |
-          quarto render dashboard-apec-projects.qmd
+          quarto render dashboard/dashboard-apec-projects.qmd
 
       - name: commit updated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add apec_approved_projects.csv
-          git add apec_approved_projects.xlsx
-          git add dashboard-apec-projects.html
-          git add dashboard-apec-projects_files/ || true
+          git add data/apec_approved_projects.csv
+          git add data/apec_approved_projects.xlsx
+          git add dashboard/apec_approved_projects.xlsx
+          git add dashboard/dashboard-apec-projects.html || true
+          git add dashboard/dashboard-apec-projects_files/ || true
 
           if git diff --cached --quiet; then
             echo "No changes to commit"
@@ -115,7 +116,8 @@ jobs:
             secret = Sys.getenv("SHINYAPPS_SECRET")
           )'
           Rscript -e 'rsconnect::deployApp(
-            appDir = ".",
+            appDir = "dashboard",
+            appPrimaryDoc = "dashboard-apec-projects.qmd",
             appName = "dashboard-apec-projects",
             account = Sys.getenv("SHINYAPPS_ACCOUNT"),
             server = "shinyapps.io",

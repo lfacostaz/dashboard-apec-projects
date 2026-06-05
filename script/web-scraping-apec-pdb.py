@@ -508,6 +508,12 @@ def write_outputs_safely(df: pd.DataFrame, config: ScraperConfig) -> Tuple[Path,
 
     temp_csv.replace(final_csv)
     temp_xlsx.replace(final_xlsx)
+    
+    dashboard_dir = config.output_dir.parent / "dashboard"
+    dashboard_dir.mkdir(parents=True, exist_ok=True)
+    
+    dashboard_xlsx = dashboard_dir / f"{config.output_base}.xlsx"
+    shutil.copy2(final_xlsx, dashboard_xlsx)
 
     return final_csv, final_xlsx
 
@@ -523,8 +529,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=repo_root,
-        help="Directory where CSV/XLSX outputs will be written. Default: repository root.",
+        default=repo_root / "data",
+        help="Directory where CSV/XLSX outputs will be written. Default: data directory.",
     )
     parser.add_argument(
         "--output-base",

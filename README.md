@@ -2,9 +2,9 @@
 
 This repository contains an automated data pipeline and an interactive dashboard for exploring publicly available information from the APEC Project Database.
 
-The project combines Python-based web scraping with a Quarto/Shiny dashboard. The scraper collects project-level information from the APEC Project Database, structures the results into clean tabular files, and exports the dataset in CSV and XLSX formats. The dashboard then uses those files to provide an interactive interface for filtering, visualizing, and downloading the data.
+The project combines Python-based web scraping with a Quarto/Shiny dashboard. The scraper collects project-level information from the APEC Project Database, structures the results into clean tabular files, and exports the dataset in CSV and XLSX formats. The dashboard uses those files to provide an interactive interface for filtering, visualizing, and downloading the data.
 
-Dashboard: https://lfacostaz.shinyapps.io/dashboard-apec-projects/
+**Live dashboard:** https://lfacostaz.shinyapps.io/dashboard-apec-projects/
 
 ## Project overview
 
@@ -18,10 +18,12 @@ The data pipeline is built in Python. It scrapes approved APEC projects from the
 
 The scraper uses `requests` and `BeautifulSoup` for data collection, `ThreadPoolExecutor` for parallel processing, and `pandas` for cleaning, structuring, deduplication, and export.
 
-The resulting datasets are saved as:
+The resulting datasets are saved in the `data/` folder:
 
-- `apec_approved_projects.csv`
-- `apec_approved_projects.xlsx`
+```text
+data/apec_approved_projects.csv
+data/apec_approved_projects.xlsx
+```
 
 ## Dashboard
 
@@ -31,6 +33,14 @@ The sidebar allows filtering by year, economy, forum, committee, topic, project 
 
 The visualization tabs cover project counts by year, forum, and economy; project value by year and funding source; trends over time by economy, forum, committee, and topic; and a searchable project-level data table. Filtered data can be exported directly to XLSX.
 
+The Quarto source file and rendered dashboard outputs are stored in the `dashboard/` folder:
+
+```text
+dashboard/dashboard-apec-projects.qmd
+dashboard/dashboard-apec-projects.html
+dashboard/dashboard-apec-projects_files/
+```
+
 ## Automation
 
 The update process runs through GitHub Actions. The workflow executes the Python scraper, regenerates the CSV and XLSX datasets, renders the Quarto/Shiny dashboard, commits updated files to the repository, and redeploys the latest version to shinyapps.io.
@@ -39,15 +49,64 @@ The update process runs through GitHub Actions. The workflow executes the Python
 
 ```text
 dashboard-apec-projects/
+├── data/
+│   ├── apec_approved_projects.csv
+│   └── apec_approved_projects.xlsx
+├── dashboard/
+│   ├── dashboard-apec-projects.qmd
+│   ├── dashboard-apec-projects.html
+│   └── dashboard-apec-projects_files/
+├── notebook/
+│   └── web-scraping-apec-pdb.ipynb
 ├── script/
 │   └── web-scraping-apec-pdb.py
-├── notebook/
-├── apec_approved_projects.csv
-├── apec_approved_projects.xlsx
-├── dashboard-apec-projects.qmd
-├── dashboard-apec-projects.html
-├── dashboard-apec-projects_files/
+├── rsconnect/
 ├── requirements.txt
+├── README.md
 └── .github/
     └── workflows/
         └── daily-update.yml
+```
+
+## Main files
+
+| Path                                     | Description                                               |
+| ---------------------------------------- | --------------------------------------------------------- |
+| `script/web-scraping-apec-pdb.py`        | Production Python scraper used by the automated workflow. |
+| `notebook/web-scraping-apec-pdb.ipynb`   | Notebook version of the scraping process.                 |
+| `data/apec_approved_projects.csv`        | Clean dataset in CSV format.                              |
+| `data/apec_approved_projects.xlsx`       | Clean dataset in Excel format.                            |
+| `dashboard/dashboard-apec-projects.qmd`  | Quarto/Shiny dashboard source file.                       |
+| `dashboard/dashboard-apec-projects.html` | Rendered dashboard output.                                |
+
+## Requirements
+
+Python dependencies are listed in:
+
+```text
+requirements.txt
+```
+
+To install them in a virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+## Run locally
+
+Run the scraper:
+
+```bash
+python script/web-scraping-apec-pdb.py
+```
+
+Render the dashboard:
+
+```bash
+quarto render dashboard/dashboard-apec-projects.qmd
+```
+
+The updated datasets will be written to `data/`, and the rendered dashboard files will be written to `dashboard/`.
