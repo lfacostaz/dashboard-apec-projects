@@ -9,6 +9,13 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: daily-apec-dashboard-update
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
@@ -81,11 +88,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add apec_approved_projects.csv
           git add apec_approved_projects.xlsx
           git add dashboard-apec-projects.html
           git add dashboard-apec-projects_files/ || true
-          git diff --cached --quiet || git commit -m "daily APEC dashboard update"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "daily APEC dashboard update"
+          git pull --rebase origin main
           git push
 
       - name: deploy with rsconnect
@@ -106,3 +121,4 @@ jobs:
             server = "shinyapps.io",
             forceUpdate = TRUE
           )'
+```
