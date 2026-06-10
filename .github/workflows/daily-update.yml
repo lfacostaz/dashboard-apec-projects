@@ -23,6 +23,14 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: sync with main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: set up python
         uses: actions/setup-python@v5
@@ -101,8 +109,7 @@ jobs:
           fi
 
           git commit -m "daily APEC dashboard update"
-          git pull --rebase origin main
-          git push
+          git push origin HEAD:main
 
       - name: deploy with rsconnect
         env:
