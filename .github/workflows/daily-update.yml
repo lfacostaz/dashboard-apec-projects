@@ -27,7 +27,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: sync with main
+      - name: sync with remote main
         run: |
           git fetch origin main
           git reset --hard origin/main
@@ -120,8 +120,10 @@ jobs:
           Rscript -e 'rsconnect::setAccountInfo(
             name = Sys.getenv("SHINYAPPS_ACCOUNT"),
             token = Sys.getenv("SHINYAPPS_TOKEN"),
-            secret = Sys.getenv("SHINYAPPS_SECRET")
+            secret = Sys.getenv("SHINYAPPS_SECRET"),
+            server = "shinyapps.io"
           )'
+
           Rscript -e 'rsconnect::deployApp(
             appDir = "dashboard",
             appPrimaryDoc = "dashboard-apec-projects.qmd",
