@@ -103,13 +103,15 @@ jobs:
           git add dashboard/dashboard-apec-projects.html || true
           git add dashboard/dashboard-apec-projects_files/ || true
 
+          git status --short
+
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
           fi
 
           git commit -m "daily APEC dashboard update"
-          git push origin HEAD:main
+          git push origin main
 
       - name: deploy with rsconnect
         env:
