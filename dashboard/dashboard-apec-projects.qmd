@@ -128,46 +128,120 @@ topics_choices        <- split_choices_from(bd$topics)
 
 tagList(
   accordion(
-    id = "filters_acc", open = "Main filters", width = "200%",
+    id = "filters_acc",
+    open = "Main filters",
+    width = "200%",
 
     accordion_panel(
       "Main filters",
-      selectInput("year_filter",      "Year:",              choices = year_choices,      multiple = TRUE),
-      selectInput("economy_filter",   "Proposing economy:", choices = economy_choices,   multiple = TRUE),
-      selectInput("forum_filter",     "Forum:",             choices = forum_choices,     multiple = TRUE),
-      selectInput("committee_filter", "Committee:",         choices = committee_choices, multiple = TRUE),
-      selectInput("topics_filter",    "Topic:",             choices = topics_choices,    multiple = TRUE),
-      selectInput("status_filter",    "Status:",            choices = status_choices,    multiple = TRUE)
+      selectInput(
+        "year_filter", "Year:",
+        choices = year_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "economy_filter", "Proposing economy:",
+        choices = economy_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "committee_filter", "Committee:",
+        choices = committee_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "forum_filter", "Forum:",
+        choices = forum_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "topics_filter", "Topic:",
+        choices = topics_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "status_filter", "Status:",
+        choices = status_choices,
+        multiple = TRUE
+      )
     ),
 
     accordion_panel(
       "Advanced filters",
-      selectInput("session_filter",  "Session:",    choices = session_choices,  multiple = TRUE),
-      selectInput("co_spons_filter", "Co-sponsor:", choices = co_spons_choices, multiple = TRUE),
-      selectInput("fund_filter",     "Fund:",       choices = fund_choices,     multiple = TRUE),
-      selectInput("subfund_filter",  "Sub-fund:",   choices = subfund_choices,  multiple = TRUE),
+      selectInput(
+        "session_filter", "Session:",
+        choices = session_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "co_spons_filter", "Co-sponsor:",
+        choices = co_spons_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "fund_filter", "Fund:",
+        choices = fund_choices,
+        multiple = TRUE
+      ),
+      selectInput(
+        "subfund_filter", "Sub-fund:",
+        choices = subfund_choices,
+        multiple = TRUE
+      ),
+
       selectizeInput(
-        "title_filter", "Project title:", choices = project_title_choices,
-        multiple = TRUE, options = list(placeholder = "Type text...", maxOptions = 100)
+        "title_filter", "Project title:",
+        choices = project_title_choices,
+        multiple = TRUE,
+        options = list(
+          placeholder = "Type text...",
+          maxOptions = 100,
+          openOnFocus = FALSE,
+          respect_word_boundaries = TRUE,
+
+          onDropdownOpen = I(
+            "function() {
+              if (!this.getTextboxValue().trim()) {
+                this.close();
+              }
+            }"
+          ),
+
+          onType = I(
+            "function(str) {
+              if (!str.trim()) {
+                this.close();
+              }
+            }"
+          )
+        )
       )
     )
   ),
 
   actionButton(
-    "reset_filters", "Reset filters",
+    "reset_filters",
+    "Reset filters",
     class = "btn btn-sm btn-secondary",
     style = "font-size:13px;padding:8px 20px;height:50px;line-height:20px;margin-top:10px;"
   ),
+
   downloadButton(
-    "download_xlsx", "Download XLSX",
+    "download_xlsx",
+    "Download XLSX",
     class = "btn btn-sm btn-primary",
     style = "font-size:13px;padding:8px 20px;height:50px;line-height:20px;margin-top:10px;"
   ),
 
   tags$hr(),
+
   tags$p(
     "This dashboard was developed using publicly available data from the ",
-    tags$a(href = "https://pdb.apec.org/", "APEC Project Database"), ".",
+    tags$a(
+      href = "https://pdb.apec.org/",
+      "APEC Project Database"
+    ),
+    ".",
     style = "font-size:12px; color:#555; margin-top:6px;"
   )
 )
@@ -655,9 +729,16 @@ output$tabla_proyectos_budget <- renderDT({
     df_table,
     options  = list(pageLength = 25, scrollX = TRUE),
     rownames = FALSE,
-    escape   = FALSE   # allow HTML in link column
-  )
-})
+    escape   = FALSE
+    ) |>
+    DT::formatCurrency(
+      c("total_cost_usd", "apec_funding_usd", "co_funding_usd", "self_funded_usd"),
+      currency = "",
+      interval = 3,
+      mark = ",",
+      digits = 0
+      )
+  })
 ```
 
 ## 
