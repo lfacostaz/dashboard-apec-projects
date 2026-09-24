@@ -42,9 +42,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="dashboard-apec-projects_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="dashboard-apec-projects_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-97e860b659f34d4129f6e54c2a773d4e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-dark-97e860b659f34d4129f6e54c2a773d4e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="light">
-<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-97e860b659f34d4129f6e54c2a773d4e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-cf2459e26dea71734884e6bd0a221e93.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-dark-cf2459e26dea71734884e6bd0a221e93.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="light">
+<link href="dashboard-apec-projects_files/libs/bootstrap/bootstrap-cf2459e26dea71734884e6bd0a221e93.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script src="dashboard-apec-projects_files/libs/quarto-dashboard/quarto-dashboard.js"></script>
 <script src="dashboard-apec-projects_files/libs/quarto-dashboard/stickythead.js"></script>
 
@@ -236,12 +236,12 @@ grid-auto-rows: minmax(0, 1fr);">
 <div class="accordion bslib-accordion-input" data-require-bs-caller="accordion()" data-require-bs-version="5" id="filters_acc" style="width:200%;">
 <div class="accordion-item" data-value="Main filters">
 <div class="accordion-header">
-<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-2036" aria-controls="bslib-accordion-panel-2036" aria-expanded="true">
+<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-8544" aria-controls="bslib-accordion-panel-8544" aria-expanded="true">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Main filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-2036" class="accordion-collapse collapse show">
+<div id="bslib-accordion-panel-8544" class="accordion-collapse collapse show">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="year_filter-label" for="year_filter">Year:</label>
@@ -296,6 +296,18 @@ grid-auto-rows: minmax(0, 1fr);">
 <option value="United States">United States</option>
 <option value="Viet Nam">Viet Nam</option></select>
 <script type="application/json" data-for="economy_filter">{"plugins":["selectize-plugin-a11y"]}</script>
+</div>
+</div>
+<div class="form-group shiny-input-container">
+<label class="control-label" id="committee_filter-label" for="committee_filter">Committee:</label>
+<div>
+<select id="committee_filter" class="shiny-input-select" multiple="multiple"><option value="Committee on Trade and Investment (CTI)">Committee on Trade and Investment (CTI)</option>
+<option value="dSenior Officials Meeting (SOM)">dSenior Officials Meeting (SOM)</option>
+<option value="Economic Committee (EC)">Economic Committee (EC)</option>
+<option value="Not Applicable / Other">Not Applicable / Other</option>
+<option value="Senior Finance Officials Meeting (SFOM)">Senior Finance Officials Meeting (SFOM)</option>
+<option value="SOM Steering Committee on Economic and Technical Cooperation (SCE)">SOM Steering Committee on Economic and Technical Cooperation (SCE)</option></select>
+<script type="application/json" data-for="committee_filter">{"plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
 <div class="form-group shiny-input-container">
@@ -356,18 +368,6 @@ grid-auto-rows: minmax(0, 1fr);">
 <option value="Transportation Working Group (TPTWG)">Transportation Working Group (TPTWG)</option>
 <option value="WTO Capabity Building Group (WCBG)">WTO Capabity Building Group (WCBG)</option></select>
 <script type="application/json" data-for="forum_filter">{"plugins":["selectize-plugin-a11y"]}</script>
-</div>
-</div>
-<div class="form-group shiny-input-container">
-<label class="control-label" id="committee_filter-label" for="committee_filter">Committee:</label>
-<div>
-<select id="committee_filter" class="shiny-input-select" multiple="multiple"><option value="Committee on Trade and Investment (CTI)">Committee on Trade and Investment (CTI)</option>
-<option value="dSenior Officials Meeting (SOM)">dSenior Officials Meeting (SOM)</option>
-<option value="Economic Committee (EC)">Economic Committee (EC)</option>
-<option value="Not Applicable / Other">Not Applicable / Other</option>
-<option value="Senior Finance Officials Meeting (SFOM)">Senior Finance Officials Meeting (SFOM)</option>
-<option value="SOM Steering Committee on Economic and Technical Cooperation (SCE)">SOM Steering Committee on Economic and Technical Cooperation (SCE)</option></select>
-<script type="application/json" data-for="committee_filter">{"plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
 <div class="form-group shiny-input-container">
@@ -454,12 +454,12 @@ grid-auto-rows: minmax(0, 1fr);">
 </div>
 <div class="accordion-item" data-value="Advanced filters">
 <div class="accordion-header">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-5134" aria-expanded="false" aria-controls="bslib-accordion-panel-5134">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-6087" aria-expanded="false" aria-controls="bslib-accordion-panel-6087">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Advanced filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-5134" class="accordion-collapse collapse">
+<div id="bslib-accordion-panel-6087" class="accordion-collapse collapse">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="session_filter-label" for="session_filter">Session:</label>
@@ -4023,7 +4023,7 @@ grid-auto-rows: minmax(0, 1fr);">
 <option value="Young Scientists Workshop for the APEC Roadmap of Science Communication in the 21st Century">Young Scientists Workshop for the APEC Roadmap of Science Communication in the 21st Century</option>
 <option value="Youth Sustainable Water Resources Education and Hub Development in APEC Region">Youth Sustainable Water Resources Education and Hub Development in APEC Region</option>
 <option value="Zoning in Animal Health: Sharing Experiences and Best Practices for more and better foods">Zoning in Animal Health: Sharing Experiences and Best Practices for more and better foods</option></select>
-<script type="application/json" data-for="title_filter">{"placeholder":"Type text...","maxOptions":100,"plugins":["selectize-plugin-a11y"]}</script>
+<script type="application/json" data-for="title_filter" data-eval="[&quot;onDropdownOpen&quot;,&quot;onType&quot;]">{"placeholder":"Type text...","maxOptions":100,"openOnFocus":false,"respect_word_boundaries":true,"onDropdownOpen":"function() {\n              if (!this.getTextboxValue().trim()) {\n                this.close();\n              }\n            }","onType":"function(str) {\n              if (!str.trim()) {\n                this.close();\n              }\n            }","plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
 </div>
@@ -4647,9 +4647,16 @@ output$tabla_proyectos_budget <- renderDT({
     df_table,
     options  = list(pageLength = 25, scrollX = TRUE),
     rownames = FALSE,
-    escape   = FALSE   # allow HTML in link column
-  )
-})
+    escape   = FALSE
+    ) |>
+    DT::formatCurrency(
+      c("total_cost_usd", "apec_funding_usd", "co_funding_usd", "self_funded_usd"),
+      currency = "",
+      interval = 3,
+      mark = ",",
+      digits = 0
+      )
+  })
 </script>
  
 <script type="application/shiny-prerendered" data-context="server-extras">
