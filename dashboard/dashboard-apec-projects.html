@@ -237,37 +237,37 @@ grid-auto-rows: minmax(0, 1fr);">
 <div class="accordion bslib-accordion-input" data-require-bs-caller="accordion()" data-require-bs-version="5" id="filters_acc" style="width:200%;">
 <div class="accordion-item" data-value="Main filters">
 <div class="accordion-header">
-<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-3144" aria-controls="bslib-accordion-panel-3144" aria-expanded="true">
+<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-2019" aria-controls="bslib-accordion-panel-2019" aria-expanded="true">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Main filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-3144" class="accordion-collapse collapse show">
+<div id="bslib-accordion-panel-2019" class="accordion-collapse collapse show">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="year_filter-label" for="year_filter">Year:</label>
 <div>
-<select id="year_filter" class="shiny-input-select" multiple="multiple"><option value="2006">2006</option>
-<option value="2007">2007</option>
-<option value="2008">2008</option>
-<option value="2009">2009</option>
-<option value="2010">2010</option>
-<option value="2011">2011</option>
-<option value="2012">2012</option>
-<option value="2013">2013</option>
-<option value="2014">2014</option>
-<option value="2015">2015</option>
-<option value="2016">2016</option>
-<option value="2017">2017</option>
-<option value="2018">2018</option>
-<option value="2019">2019</option>
-<option value="2020">2020</option>
-<option value="2021">2021</option>
-<option value="2022">2022</option>
-<option value="2023">2023</option>
-<option value="2024">2024</option>
+<select id="year_filter" class="shiny-input-select" multiple="multiple"><option value="2026">2026</option>
 <option value="2025">2025</option>
-<option value="2026">2026</option></select>
+<option value="2024">2024</option>
+<option value="2023">2023</option>
+<option value="2022">2022</option>
+<option value="2021">2021</option>
+<option value="2020">2020</option>
+<option value="2019">2019</option>
+<option value="2018">2018</option>
+<option value="2017">2017</option>
+<option value="2016">2016</option>
+<option value="2015">2015</option>
+<option value="2014">2014</option>
+<option value="2013">2013</option>
+<option value="2012">2012</option>
+<option value="2011">2011</option>
+<option value="2010">2010</option>
+<option value="2009">2009</option>
+<option value="2008">2008</option>
+<option value="2007">2007</option>
+<option value="2006">2006</option></select>
 <script type="application/json" data-for="year_filter">{"plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
@@ -287,7 +287,7 @@ grid-auto-rows: minmax(0, 1fr);">
 <option value="Malaysia">Malaysia</option>
 <option value="Mexico">Mexico</option>
 <option value="New Zealand">New Zealand</option>
-<option value="Other -- APEC Secretariat">Other -- APEC Secretariat</option>
+<option value="Other -- APEC Secretariat">APEC Secretariat</option>
 <option value="Papua New Guinea">Papua New Guinea</option>
 <option value="Peru">Peru</option>
 <option value="Philippines">Philippines</option>
@@ -455,12 +455,12 @@ grid-auto-rows: minmax(0, 1fr);">
 </div>
 <div class="accordion-item" data-value="Advanced filters">
 <div class="accordion-header">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-2855" aria-expanded="false" aria-controls="bslib-accordion-panel-2855">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-6620" aria-expanded="false" aria-controls="bslib-accordion-panel-6620">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Advanced filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-2855" class="accordion-collapse collapse">
+<div id="bslib-accordion-panel-6620" class="accordion-collapse collapse">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="session_filter-label" for="session_filter">Session:</label>
@@ -4173,8 +4173,9 @@ bd <- bd |>
   )
 
 # -------- Filter choices --------
-year_choices          <- choices_from(bd$project_year)
+year_choices          <- sort(choices_from(bd$project_year), decreasing = TRUE)
 forum_choices         <- choices_from(bd$sponsoring_forum)
+names(forum_choices)  <- ifelse(forum_choices == "dSenior Officials Meeting (SOM)", "Senior Officials Meeting (SOM)", forum_choices)
 status_choices        <- choices_from(bd$project_status)
 fund_choices          <- choices_from(bd$fund_account)
 subfund_choices       <- choices_from(bd$sub_fund)
@@ -4182,6 +4183,7 @@ session_choices       <- choices_from(bd$project_session)
 committee_choices     <- choices_from(bd$committee)
 project_title_choices <- choices_from(bd$project_title)
 economy_choices       <- split_choices_from(bd$proposing_economy)
+names(economy_choices) <- ifelse(economy_choices == "Other -- APEC Secretariat", "APEC Secretariat", economy_choices)
 co_spons_choices      <- setdiff(split_choices_from(bd$co_sponsoring_economies), "None")
 topics_choices        <- split_choices_from(bd$topics)
 </script>
