@@ -237,12 +237,12 @@ grid-auto-rows: minmax(0, 1fr);">
 <div class="accordion bslib-accordion-input" data-require-bs-caller="accordion()" data-require-bs-version="5" id="filters_acc" style="width:200%;">
 <div class="accordion-item" data-value="Main filters">
 <div class="accordion-header">
-<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-1602" aria-controls="bslib-accordion-panel-1602" aria-expanded="true">
+<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-1518" aria-controls="bslib-accordion-panel-1518" aria-expanded="true">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Main filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-1602" class="accordion-collapse collapse show">
+<div id="bslib-accordion-panel-1518" class="accordion-collapse collapse show">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="year_filter-label" for="year_filter">Year:</label>
@@ -305,9 +305,9 @@ grid-auto-rows: minmax(0, 1fr);">
 <select id="committee_filter" class="shiny-input-select" multiple="multiple"><option value="Committee on Trade and Investment (CTI)">Committee on Trade and Investment (CTI)</option>
 <option value="dSenior Officials Meeting (SOM)">Senior Officials Meeting (SOM)</option>
 <option value="Economic Committee (EC)">Economic Committee (EC)</option>
-<option value="Not Applicable / Other">Not Applicable / Other</option>
 <option value="Senior Finance Officials Meeting (SFOM)">Senior Finance Officials Meeting (SFOM)</option>
-<option value="SOM Steering Committee on Economic and Technical Cooperation (SCE)">SOM Steering Committee on Economic and Technical Cooperation (SCE)</option></select>
+<option value="SOM Steering Committee on Economic and Technical Cooperation (SCE)">SOM Steering Committee on Economic and Technical Cooperation (SCE)</option>
+<option value="Not Applicable / Other">Not Applicable / Other</option></select>
 <script type="application/json" data-for="committee_filter">{"plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
@@ -455,20 +455,20 @@ grid-auto-rows: minmax(0, 1fr);">
 </div>
 <div class="accordion-item" data-value="Advanced filters">
 <div class="accordion-header">
-<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-3049" aria-expanded="false" aria-controls="bslib-accordion-panel-3049">
+<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bslib-accordion-panel-7072" aria-expanded="false" aria-controls="bslib-accordion-panel-7072">
 <div class="accordion-icon"></div>
 <div class="accordion-title">Advanced filters</div>
 </button>
 </div>
-<div id="bslib-accordion-panel-3049" class="accordion-collapse collapse">
+<div id="bslib-accordion-panel-7072" class="accordion-collapse collapse">
 <div class="accordion-body">
 <div class="form-group shiny-input-container">
 <label class="control-label" id="session_filter-label" for="session_filter">Session:</label>
 <div>
-<select id="session_filter" class="shiny-input-select" multiple="multiple"><option value="Not Applicable">Not Applicable</option>
-<option value="Session 1">Session 1</option>
+<select id="session_filter" class="shiny-input-select" multiple="multiple"><option value="Session 1">Session 1</option>
 <option value="Session 2">Session 2</option>
-<option value="Session 3">Session 3</option></select>
+<option value="Session 3">Session 3</option>
+<option value="Not Applicable">Not Applicable</option></select>
 <script type="application/json" data-for="session_filter">{"plugins":["selectize-plugin-a11y"]}</script>
 </div>
 </div>
@@ -4179,9 +4179,10 @@ names(forum_choices)  <- ifelse(forum_choices == "dSenior Officials Meeting (SOM
 status_choices        <- choices_from(bd$project_status)
 fund_choices          <- choices_from(bd$fund_account)
 subfund_choices       <- choices_from(bd$sub_fund)
-session_choices       <- choices_from(bd$project_session)
+session_choices       <- c(setdiff(choices_from(bd$project_session), "Not Applicable"), "Not Applicable")
 committee_choices     <- choices_from(bd$committee)
-names(committee_choices) <- ifelse(committee_choices == "dSenior Officials Meeting (SOM)", "Senior Officials Meeting (SOM)", committee_choices)
+names(committee_choices) <- sub("^dSenior Officials Meeting", "Senior Officials Meeting", committee_choices)
+committee_choices <- committee_choices[order(committee_choices == "Not Applicable / Other")]
 project_title_choices <- choices_from(bd$project_title)
 economy_choices       <- split_choices_from(bd$proposing_economy)
 economy_choices       <- c(intersect("Other -- APEC Secretariat", economy_choices), setdiff(economy_choices, "Other -- APEC Secretariat"))
