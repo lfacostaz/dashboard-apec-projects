@@ -108,8 +108,9 @@ bd <- bd |>
   )
 
 # -------- Filter choices --------
-year_choices          <- choices_from(bd$project_year)
+year_choices          <- sort(choices_from(bd$project_year), decreasing = TRUE)
 forum_choices         <- choices_from(bd$sponsoring_forum)
+names(forum_choices)  <- ifelse(forum_choices == "dSenior Officials Meeting (SOM)", "Senior Officials Meeting (SOM)", forum_choices)
 status_choices        <- choices_from(bd$project_status)
 fund_choices          <- choices_from(bd$fund_account)
 subfund_choices       <- choices_from(bd$sub_fund)
@@ -117,6 +118,7 @@ session_choices       <- choices_from(bd$project_session)
 committee_choices     <- choices_from(bd$committee)
 project_title_choices <- choices_from(bd$project_title)
 economy_choices       <- split_choices_from(bd$proposing_economy)
+names(economy_choices) <- ifelse(economy_choices == "Other -- APEC Secretariat", "APEC Secretariat", economy_choices)
 co_spons_choices      <- setdiff(split_choices_from(bd$co_sponsoring_economies), "None")
 topics_choices        <- split_choices_from(bd$topics)
 ```
